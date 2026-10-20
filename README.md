@@ -39,7 +39,9 @@ $env:API_KEY = "local-dev-key"
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
-Open <http://127.0.0.1:8000/> for the web page.
+Open <http://127.0.0.1:8000/> for the web page. It asks for the API key on first
+load and keeps it in the browser's `localStorage` — the key is never served in the
+page source, so opening the page does not expose the API.
 
 ```powershell
 # seed a couple of slots

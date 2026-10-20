@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Ping health endpoint
         env:
-          SERVICE_URL: ${{ vars.SERVICE_URL || 'https://clinic-booking-api.onrender.com' }}
+          SERVICE_URL: ${{ vars.SERVICE_URL || 'https://clinic-booking-api-zysc.onrender.com' }}
         run: |
           echo "Pinging $SERVICE_URL/health"
           code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 90 "$SERVICE_URL/health")

@@ -444,3 +444,6 @@ def test_web_page_is_served(base_url: str) -> None:
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "Clinic appointments" in response.text
+    # Level 2 must not be bypassable by reading the page source.
+    assert API_KEY not in response.text
+    assert "__API_KEY_JSON__" not in response.text

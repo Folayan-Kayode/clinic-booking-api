@@ -214,10 +214,11 @@
         <div id="keyView" class="small">
           Using <code id="keyMask">••••</code> · <span id="apiState" class="muted">not checked</span>
         </div>
+        <p id="keyHint" class="banner warn show hidden" style="margin:10px 0 0"></p>
         <form id="keyForm" class="hidden" style="margin-top:8px">
           <label for="keyInput">X-API-Key</label>
           <div class="row">
-            <input id="keyInput" placeholder="paste your API key">
+            <input id="keyInput" type="password" autocomplete="off" placeholder="paste your API key">
             <button class="btn-primary" style="flex:0 0 auto" type="submit">Save</button>
           </div>
         </form>
@@ -229,7 +230,7 @@
 <footer class="wrap">Clinic booking API · every request is sent with the <code>X-API-Key</code> header.</footer>
 
 <script>
-  const DEFAULT_KEY = __API_KEY_JSON__;
+  const DEFAULT_KEY = "";
   const store = {
     get key() { return localStorage.getItem("booking_api_key") || DEFAULT_KEY; },
     set key(v) { localStorage.setItem("booking_api_key", v); },
@@ -285,6 +286,9 @@
     let data = null;
     try { data = await response.json(); } catch (e) { /* empty body */ }
     if (!response.ok) {
+      if (response.status === 401) {
+        showKeyPanel(true, "That API key was rejected. Paste the correct one to continue.");
+      }
       const error = new Error((data && data.error) || ("HTTP " + response.status));
       error.status = response.status;
       error.retryAfter = response.headers.get("Retry-After");
@@ -545,24 +549,45 @@
   // --- connection panel ---------------------------------------------------
   function paintKey() {
     const key = store.key || "";
-    $("keyMask").textContent = key ? key.slice(0, 6) + "••••" + key.slice(-4) : "none";
+    $("keyMask").textContent = key ? key.slice(0, 6) + "••••" + key.slice(-4) : "not set";
     $("keyInput").value = key;
   }
+
+  function showKeyPanel(show, hint) {
+    $("keyForm").classList.toggle("hidden", !show);
+    $("keyHint").classList.toggle("hidden", !show);
+    if (hint) $("keyHint").textContent = hint;
+    if (show) $("keyInput").focus();
+  }
+
   $("editKey").addEventListener("click", () => {
-    $("keyForm").classList.toggle("hidden");
+    showKeyPanel($("keyForm").classList.contains("hidden"));
   });
+
   $("keyForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    store.key = $("keyInput").value.trim();
+    const value = $("keyInput").value.trim();
+    if (!value) {
+      $("keyHint").textContent = "The API key cannot be empty.";
+      $("keyHint").classList.remove("hidden");
+      return;
+    }
+    store.key = value;
     paintKey();
-    $("keyForm").classList.add("hidden");
+    showKeyPanel(false);
+    $("apiState").textContent = "not checked";
     loadSlots();
   });
 
   // --- boot ---------------------------------------------------------------
   paintKey();
   $("lookupEmail").value = store.email;
-  loadSlots();
+  if (store.key) {
+    loadSlots();
+  } else {
+    $("slotsStatus").textContent = "Enter your API key to load the clinic's slots.";
+    showKeyPanel(true, "Enter the API key you were given, then press Save.");
+  }
 </script>
 </body>
 </html>

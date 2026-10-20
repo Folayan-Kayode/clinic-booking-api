@@ -6,7 +6,6 @@ Every request needs the X-API-Key header (level 2).
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import secrets
@@ -164,4 +163,4 @@ async def cancel_booking(booking_id: str) -> JSONResponse:
 @app.get("/", response_class=HTMLResponse)
 async def index() -> HTMLResponse:
     html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
-    return HTMLResponse(html.replace("__API_KEY_JSON__", json.dumps(API_KEY)))
+    return HTMLResponse(html, headers={"Cache-Control": "no-store"})
