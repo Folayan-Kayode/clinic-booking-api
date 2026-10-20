@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinic booking</title>
+<style>
+  :root {
+    --bg: #f4f7f9;
+    --card: #ffffff;
+    --ink: #14212b;
+    --muted: #61707d;
+    --line: #e2e9ee;
+    --accent: #0f766e;
+    --accent-soft: #e6f4f1;
+    --danger: #b42318;
+    --danger-soft: #fdecea;
+    --warn: #92400e;
+    --warn-soft: #fef3c7;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16, 35, 48, .06), 0 8px 24px rgba(16, 35, 48, .06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: 18px 24px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 38px; height: 38px; border-radius: 11px;
+    background: var(--accent); color: #fff;
+    display: grid; place-items: center; font-weight: 700; font-size: 17px;
+  }
+  h1 { font-size: 18px; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+  main { padding: 24px; display: grid; gap: 20px; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+  @media (max-width: 880px) { main { grid-template-columns: 1fr; padding: 16px; } }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line);
+  }
+  .card-head h2 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+  .card-body { padding: 18px; }
+  .col { display: grid; gap: 20px; align-content: start; }
+  label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  input, select, button { font: inherit; }
+  input, select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 10px; background: #fff; color: var(--ink); outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1 1 160px; }
+  button {
+    cursor: pointer; border-radius: 10px; padding: 10px 14px;
+    border: 1px solid transparent; font-weight: 600; transition: .15s;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #0b5f59; }
+  .btn-ghost { background: #fff; border-color: var(--line); color: var(--ink); }
+  .btn-ghost:hover:not(:disabled) { border-color: #c7d3db; }
+  .btn-danger { background: var(--danger-soft); color: var(--danger); border-color: #f6d4d0; }
+  .btn-danger:hover:not(:disabled) { background: #fbdcd8; }
+  .small { font-size: 13px; }
+  .muted { color: var(--muted); }
+  .day { margin-top: 14px; }
+  .day:first-child { margin-top: 0; }
+  .day-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--muted); margin: 0 0 8px;
+  }
+  .slot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 12px 14px; border: 1px solid var(--line);
+    border-radius: 12px; margin-bottom: 8px; background: #fff;
+  }
+  .slot.taken { background: #fbfcfd; }
+  .slot time { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .slot .who { color: var(--muted); font-size: 13px; }
+  .pill {
+    display: inline-block; padding: 3px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .02em;
+  }
+  .pill.ok { background: var(--accent-soft); color: var(--accent); }
+  .pill.no { background: var(--danger-soft); color: var(--danger); }
+  .pill.past { background: #eef2f5; color: var(--muted); }
+  .banner {
+    padding: 12px 14px; border-radius: 10px; font-size: 14px; margin-bottom: 14px;
+    display: none;
+  }
+  .banner.show { display: block; }
+  .banner.error { background: var(--danger-soft); color: var(--danger); border: 1px solid #f6d4d0; }
+  .banner.ok { background: var(--accent-soft); color: var(--accent); border: 1px solid #cbe8e3; }
+  .banner.warn { background: var(--warn-soft); color: var(--warn); border: 1px solid #fde68a; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-weight: 600; word-break: break-word; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+  .booking {
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    margin-bottom: 10px; display: grid; gap: 6px;
+  }
+  .booking .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+  .hidden { display: none !important; }
+  .toolbar { display: flex; gap: 8px; align-items: center; }
+  .spinner { width: 14px; height: 14px; border: 2px solid #cfe0e8; border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer { padding: 8px 24px 32px; color: var(--muted); font-size: 12.5px; }
+  .keybtn { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap brand">
+    <div class="logo">C</div>
+    <div>
+      <h1>Clinic appointments</h1>
+      <p class="sub">Choose a slot, book it, and get your confirmation.</p>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="col">
+    <section class="card">
+      <div class="card-head">
+        <h2>Available slots</h2>
+        <div class="toolbar">
+          <select id="provider" aria-label="Filter by provider" style="width:auto">
+            <option value="">All providers</option>
+          </select>
+          <button class="btn-ghost" id="refresh">Refresh</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="slotsStatus" class="empty">Loading slots…</div>
+        <div id="slots"></div>
+      </div>
+    </section>
+
+    <section class="card" id="bookCard">
+      <div class="card-head">
+        <h2 id="bookTitle">Book a slot</h2>
+        <button class="btn-ghost hidden" id="cancelPick">Cancel</button>
+      </div>
+      <div class="card-body">
+        <div id="pickHint" class="empty">Pick a slot from the list to start.</div>
+        <form id="bookForm" class="hidden">
+          <div id="pickedSlot" class="banner ok show" style="margin-bottom:14px"></div>
+          <div class="row" style="margin-bottom:12px">
+            <div>
+              <label for="name">Full name</label>
+              <input id="name" name="name" autocomplete="name" placeholder="Ada Obi" required>
+            </div>
+            <div>
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="ada@example.com" required>
+            </div>
+          </div>
+          <button class="btn-primary" id="bookBtn" type="submit">Confirm booking</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card" id="resultCard">
+      <div class="card-head"><h2>Confirmation</h2></div>
+      <div class="card-body">
+        <div id="resultEmpty" class="empty">Your booking confirmation will appear here.</div>
+        <div id="result" class="hidden"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>My bookings</h2></div>
+      <div class="card-body">
+        <div class="row" style="margin-bottom:12px">
+          <div style="flex:1 1 100%">
+            <label for="lookupEmail">Email</label>
+            <input id="lookupEmail" type="email" placeholder="ada@example.com">
+          </div>
+        </div>
+        <button class="btn-ghost" id="loadBookings">Load my bookings</button>
+        <div id="bookings" style="margin-top:14px"></div>
+        <div class="row hidden" id="pager" style="margin-top:10px">
+          <button class="btn-ghost" id="prevPage">Previous</button>
+          <button class="btn-ghost" id="nextPage">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Connection</h2>
+        <button class="keybtn" id="editKey">change key</button>
+      </div>
+      <div class="card-body">
+        <div id="keyView" class="small">
+          Using <code id="keyMask">••••</code> · <span id="apiState" class="muted">not checked</span>
+        </div>
+        <form id="keyForm" class="hidden" style="margin-top:8px">
+          <label for="keyInput">X-API-Key</label>
+          <div class="row">
+            <input id="keyInput" placeholder="paste your API key">
+            <button class="btn-primary" style="flex:0 0 auto" type="submit">Save</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="wrap">Clinic booking API · every request is sent with the <code>X-API-Key</code> header.</footer>
+
+<script>
+  const DEFAULT_KEY = __API_KEY_JSON__;
+  const store = {
+    get key() { return localStorage.getItem("booking_api_key") || DEFAULT_KEY; },
+    set key(v) { localStorage.setItem("booking_api_key", v); },
+    get email() { return localStorage.getItem("booking_email") || ""; },
+    set email(v) { localStorage.setItem("booking_email", v); },
+    get name() { return localStorage.getItem("booking_name") || ""; },
+    set name(v) { localStorage.setItem("booking_name", v); },
+  };
+
+  let slots = [];
+  let selected = null;
+  let cursorStack = [];
+  let nextCursor = null;
+  let allProviders = [];
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  function showBanner(host, text, kind) {
+    const banner = host.querySelector(".banner");
+    if (!banner) return;
+    banner.className = "banner show " + kind;
+    banner.textContent = text;
+  }
+
+  function fmtTime(iso) {
+    const date = new Date(iso);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function fmtDay(iso) {
+    return new Date(iso).toLocaleDateString([], {
+      weekday: "short", day: "numeric", month: "short", year: "numeric",
+    });
+  }
+
+  function fmtFull(iso) {
+    return new Date(iso).toLocaleString([], {
+      weekday: "short", day: "numeric", month: "short",
+      hour: "2-digit", minute: "2-digit",
+    });
+  }
+
+  async function api(path, options = {}) {
+    const headers = Object.assign({ "X-API-Key": store.key }, options.headers || {});
+    if (options.body) headers["Content-Type"] = "application/json";
+    const response = await fetch(path, Object.assign({}, options, { headers }));
+    let data = null;
+    try { data = await response.json(); } catch (e) { /* empty body */ }
+    if (!response.ok) {
+      const error = new Error((data && data.error) || ("HTTP " + response.status));
+      error.status = response.status;
+      error.retryAfter = response.headers.get("Retry-After");
+      throw error;
+    }
+    return data;
+  }
+
+  function describeError(err) {
+    if (err.status === 401) return "That API key was rejected (401). Update it under Connection.";
+    if (err.status === 429) return "Too many attempts for this email (429). Try again in " + (err.retryAfter || "a few") + "s.";
+    if (err.status === 409) return err.message + " (409)";
+    if (err.status === 404) return err.message + " (404)";
+    return err.message;
+  }
+
+  async function loadSlots() {
+    const status = $("slotsStatus");
+    status.textContent = "Loading slots…";
+    $("slots").innerHTML = "";
+    try {
+      const provider = $("provider").value;
+      const query = provider ? "?provider=" + encodeURIComponent(provider) : "";
+      const data = await api("/slots" + query);
+      slots = data.slots || [];
+      $("apiState").textContent = "connected";
+      $("apiState").className = "muted";
+      renderSlots();
+    } catch (err) {
+      status.textContent = describeError(err);
+      $("apiState").textContent = "error " + (err.status || "");
+    }
+  }
+
+  function renderSlots() {
+    const host = $("slots");
+    const status = $("slotsStatus");
+    host.innerHTML = "";
+    if (!slots.length) {
+      status.textContent = "No slots published yet.";
+      return;
+    }
+    status.textContent = "";
+    const providers = new Set();
+    let currentDay = null;
+    const now = Date.now();
+    for (const slot of slots) {
+      providers.add(slot.provider);
+      const day = fmtDay(slot.start);
+      if (day !== currentDay) {
+        currentDay = day;
+        host.appendChild(el("p", "day-title", day));
+      }
+      const past = new Date(slot.start).getTime() <= now;
+      const row = el("div", "slot" + (slot.available ? "" : " taken"));
+      const left = el("div");
+      left.appendChild(el("time", "", fmtTime(slot.start) + " – " + fmtTime(slot.end)));
+      left.appendChild(el("div", "who", slot.provider));
+      const right = el("div");
+      right.style.display = "flex";
+      right.style.alignItems = "center";
+      right.style.gap = "10px";
+      if (past) right.appendChild(el("span", "pill past", "past"));
+      else if (slot.available) right.appendChild(el("span", "pill ok", "available"));
+      else right.appendChild(el("span", "pill no", "booked"));
+
+      const button = el("button", "btn-primary", "Book");
+      button.style.padding = "7px 13px";
+      button.disabled = past || !slot.available;
+      button.addEventListener("click", () => pick(slot));
+      if (!past && slot.available) right.appendChild(button);
+
+      row.appendChild(left);
+      row.appendChild(right);
+      host.appendChild(row);
+    }
+    const select = $("provider");
+    const selectedValue = select.value;
+    if (!selectedValue) {
+      // Only an unfiltered load knows the full provider list.
+      allProviders = [...providers].sort();
+    }
+    select.innerHTML = '<option value="">All providers</option>';
+    allProviders.forEach((name) => {
+      const option = el("option", "", name);
+      option.value = name;
+      if (name === selectedValue) option.selected = true;
+      select.appendChild(option);
+    });
+  }
+
+  function pick(slot) {
+    selected = slot;
+    $("pickHint").classList.add("hidden");
+    $("bookForm").classList.remove("hidden");
+    $("cancelPick").classList.remove("hidden");
+    $("bookTitle").textContent = "Book with " + slot.provider;
+    const banner = $("pickedSlot");
+    banner.className = "banner ok show";
+    banner.textContent = fmtDay(slot.start) + " · " + fmtTime(slot.start) + " – " + fmtTime(slot.end);
+    $("name").value = store.name;
+    $("email").value = store.email;
+    $("name").focus();
+    $("bookCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function clearPick() {
+    selected = null;
+    $("bookForm").classList.add("hidden");
+    $("cancelPick").classList.add("hidden");
+    $("pickHint").classList.remove("hidden");
+    $("bookTitle").textContent = "Book a slot";
+  }
+
+  $("cancelPick").addEventListener("click", clearPick);
+  $("refresh").addEventListener("click", loadSlots);
+  $("provider").addEventListener("change", loadSlots);
+
+  $("bookForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!selected) return;
+    const button = $("bookBtn");
+    button.disabled = true;
+    button.textContent = "Booking…";
+    store.name = $("name").value.trim();
+    store.email = $("email").value.trim();
+    try {
+      const booking = await api("/bookings", {
+        method: "POST",
+        body: JSON.stringify({
+          slot_id: selected.id,
+          name: store.name,
+          email: store.email,
+        }),
+      });
+      renderConfirmation(booking);
+      $("lookupEmail").value = store.email;
+      clearPick();
+      await loadSlots();
+      await loadBookings(true);
+    } catch (err) {
+      const banner = $("pickedSlot");
+      banner.className = "banner error show";
+      banner.textContent = describeError(err);
+    } finally {
+      button.disabled = false;
+      button.textContent = "Confirm booking";
+    }
+  });
+
+  function renderConfirmation(booking) {
+    $("resultEmpty").classList.add("hidden");
+    const host = $("result");
+    host.classList.remove("hidden");
+    host.innerHTML = "";
+    host.appendChild(el("div", "pill ok", "confirmed"));
+    const list = document.createElement("dl");
+    list.style.marginTop = "12px";
+    const rows = [
+      ["Reference", booking.id],
+      ["Name", booking.name],
+      ["Email", booking.email],
+      ["Slot", booking.slot_id],
+      ["Created", fmtFull(booking.created_at)],
+    ];
+    rows.forEach(([term, value]) => {
+      list.appendChild(el("dt", "", term));
+      const cell = el("dd", "", value);
+      if (term === "Reference") cell.innerHTML = "<code>" + value + "</code>";
+      list.appendChild(cell);
+    });
+    host.appendChild(list);
+  }
+
+  async function loadBookings(reset) {
+    const email = $("lookupEmail").value.trim();
+    if (!email) return;
+    if (reset) { cursorStack = []; nextCursor = null; }
+    const cursor = cursorStack.length ? cursorStack[cursorStack.length - 1] : null;
+    const url = "/bookings?email=" + encodeURIComponent(email) +
+      "&limit=10" + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+    const host = $("bookings");
+    host.innerHTML = '<div class="empty">Loading…</div>';
+    try {
+      const data = await api(url);
+      renderBookings(data);
+    } catch (err) {
+      host.innerHTML = "";
+      host.appendChild(el("div", "empty", describeError(err)));
+    }
+  }
+
+  function renderBookings(data) {
+    const host = $("bookings");
+    host.innerHTML = "";
+    const list = data.bookings || [];
+    if (!list.length) {
+      host.appendChild(el("div", "empty", "No bookings for this email."));
+      $("pager").classList.add("hidden");
+      return;
+    }
+    for (const booking of list) {
+      const card = el("div", "booking");
+      const top = el("div", "top");
+      const slot = slots.find((s) => s.id === booking.slot_id);
+      top.appendChild(el("strong", "small", slot ? fmtFull(slot.start) : booking.slot_id));
+      const pill = el("span", "pill " + (booking.status === "confirmed" ? "ok" : "past"), booking.status);
+      top.appendChild(pill);
+      card.appendChild(top);
+      card.appendChild(el("div", "muted small", booking.name + " · " + booking.email));
+      const actions = el("div");
+      actions.style.display = "flex";
+      actions.style.justifyContent = "space-between";
+      actions.style.alignItems = "center";
+      actions.appendChild(el("code", "small", booking.id.slice(0, 12) + "…"));
+      if (booking.status === "confirmed") {
+        const cancel = el("button", "btn-danger small", "Cancel booking");
+        cancel.style.padding = "5px 10px";
+        cancel.addEventListener("click", () => cancelBooking(booking.id));
+        actions.appendChild(cancel);
+      }
+      card.appendChild(actions);
+      host.appendChild(card);
+    }
+    nextCursor = data.next_cursor;
+    $("pager").classList.toggle("hidden", !cursorStack.length && !nextCursor);
+    $("prevPage").disabled = !cursorStack.length;
+    $("nextPage").disabled = !nextCursor;
+  }
+
+  async function cancelBooking(id) {
+    try {
+      await api("/bookings/" + encodeURIComponent(id), { method: "DELETE" });
+      await loadBookings(false);
+      await loadSlots();
+      $("resultEmpty").classList.remove("hidden");
+      $("result").classList.add("hidden");
+    } catch (err) {
+      alert(describeError(err));
+    }
+  }
+
+  $("loadBookings").addEventListener("click", () => loadBookings(true));
+  $("lookupEmail").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); loadBookings(true); }
+  });
+  $("nextPage").addEventListener("click", () => {
+    if (!nextCursor) return;
+    cursorStack.push(nextCursor);
+    loadBookings(false);
+  });
+  $("prevPage").addEventListener("click", () => {
+    if (!cursorStack.length) return;
+    cursorStack.pop();
+    loadBookings(false);
+  });
+
+  // --- connection panel ---------------------------------------------------
+  function paintKey() {
+    const key = store.key || "";
+    $("keyMask").textContent = key ? key.slice(0, 6) + "••••" + key.slice(-4) : "none";
+    $("keyInput").value = key;
+  }
+  $("editKey").addEventListener("click", () => {
+    $("keyForm").classList.toggle("hidden");
+  });
+  $("keyForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    store.key = $("keyInput").value.trim();
+    paintKey();
+    $("keyForm").classList.add("hidden");
+    loadSlots();
+  });
+
+  // --- boot ---------------------------------------------------------------
+  paintKey();
+  $("lookupEmail").value = store.email;
+  loadSlots();
+</script>
+</body>
+</html>

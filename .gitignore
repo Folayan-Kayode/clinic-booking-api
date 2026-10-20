@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+data/
+.env
+.pytest_cache/
+*.db
+*.db-wal
+*.db-shm
+
+koyaacademy.comassessment-api/
+task.txt
+desktop.ini
