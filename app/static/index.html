@@ -115,6 +115,12 @@
     margin-bottom: 10px; display: grid; gap: 6px;
   }
   .booking .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .booking dl { font-size: 13px; grid-template-columns: 92px minmax(0, 1fr); gap: 5px 12px; }
+  .booking dt { font-size: 12.5px; }
+  .booking dd { font-weight: 600; }
+  .booking .ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }
+  .booking-actions { display: flex; justify-content: flex-end; margin-top: 2px; }
+  .list-meta { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; }
   .empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
   .hidden { display: none !important; }
   .toolbar { display: flex; gap: 8px; align-items: center; }
@@ -245,6 +251,7 @@
   let cursorStack = [];
   let nextCursor = null;
   let allProviders = [];
+  const slotIndex = new Map();
 
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => {
@@ -310,10 +317,10 @@
     status.textContent = "Loading slots…";
     $("slots").innerHTML = "";
     try {
-      const provider = $("provider").value;
-      const query = provider ? "?provider=" + encodeURIComponent(provider) : "";
-      const data = await api("/slots" + query);
+      const data = await api("/slots");
       slots = data.slots || [];
+      slotIndex.clear();
+      slots.forEach((slot) => slotIndex.set(slot.id, slot));
       $("apiState").textContent = "connected";
       $("apiState").className = "muted";
       renderSlots();
@@ -327,16 +334,31 @@
     const host = $("slots");
     const status = $("slotsStatus");
     host.innerHTML = "";
-    if (!slots.length) {
-      status.textContent = "No slots published yet.";
+
+    allProviders = [...new Set(slots.map((slot) => slot.provider))].sort();
+    const select = $("provider");
+    const selectedValue = select.value;
+    select.innerHTML = '<option value="">All providers</option>';
+    allProviders.forEach((name) => {
+      const option = el("option", "", name);
+      option.value = name;
+      if (name === selectedValue) option.selected = true;
+      select.appendChild(option);
+    });
+
+    const visible = selectedValue
+      ? slots.filter((slot) => slot.provider === selectedValue)
+      : slots;
+    if (!visible.length) {
+      status.textContent = selectedValue
+        ? "No slots for this provider."
+        : "No slots published yet.";
       return;
     }
     status.textContent = "";
-    const providers = new Set();
     let currentDay = null;
     const now = Date.now();
-    for (const slot of slots) {
-      providers.add(slot.provider);
+    for (const slot of visible) {
       const day = fmtDay(slot.start);
       if (day !== currentDay) {
         currentDay = day;
@@ -365,19 +387,6 @@
       row.appendChild(right);
       host.appendChild(row);
     }
-    const select = $("provider");
-    const selectedValue = select.value;
-    if (!selectedValue) {
-      // Only an unfiltered load knows the full provider list.
-      allProviders = [...providers].sort();
-    }
-    select.innerHTML = '<option value="">All providers</option>';
-    allProviders.forEach((name) => {
-      const option = el("option", "", name);
-      option.value = name;
-      if (name === selectedValue) option.selected = true;
-      select.appendChild(option);
-    });
   }
 
   function pick(slot) {
@@ -405,7 +414,7 @@
 
   $("cancelPick").addEventListener("click", clearPick);
   $("refresh").addEventListener("click", loadSlots);
-  $("provider").addEventListener("change", loadSlots);
+  $("provider").addEventListener("change", renderSlots);
 
   $("bookForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -490,29 +499,58 @@
       $("pager").classList.add("hidden");
       return;
     }
+
+    const page = cursorStack.length + 1;
+    host.appendChild(
+      el(
+        "p",
+        "list-meta",
+        list.length + (list.length === 1 ? " booking" : " bookings") + " on page " + page
+      )
+    );
+
     for (const booking of list) {
+      const slot = slotIndex.get(booking.slot_id);
       const card = el("div", "booking");
+
       const top = el("div", "top");
-      const slot = slots.find((s) => s.id === booking.slot_id);
-      top.appendChild(el("strong", "small", slot ? fmtFull(slot.start) : booking.slot_id));
-      const pill = el("span", "pill " + (booking.status === "confirmed" ? "ok" : "past"), booking.status);
+      top.appendChild(el("strong", "", slot ? fmtDay(slot.start) : "Slot " + booking.slot_id));
+      const pill = el(
+        "span",
+        "pill " + (booking.status === "confirmed" ? "ok" : "past"),
+        booking.status
+      );
       top.appendChild(pill);
       card.appendChild(top);
-      card.appendChild(el("div", "muted small", booking.name + " · " + booking.email));
-      const actions = el("div");
-      actions.style.display = "flex";
-      actions.style.justifyContent = "space-between";
-      actions.style.alignItems = "center";
-      actions.appendChild(el("code", "small", booking.id.slice(0, 12) + "…"));
+
+      const details = document.createElement("dl");
+      const rows = [
+        ["Reference", booking.id, "ref"],
+        ["Slot", booking.slot_id, ""],
+        ["Provider", slot ? slot.provider : "not in the current schedule", ""],
+        ["Appointment", slot ? fmtTime(slot.start) + " - " + fmtTime(slot.end) : "unknown", ""],
+        ["Patient", booking.name, ""],
+        ["Email", booking.email, ""],
+        ["Booked", fmtFull(booking.created_at), ""],
+      ];
+      for (const [term, value, cls] of rows) {
+        details.appendChild(el("dt", "", term));
+        details.appendChild(el("dd", cls, value));
+      }
+      card.appendChild(details);
+
       if (booking.status === "confirmed") {
-        const cancel = el("button", "btn-danger small", "Cancel booking");
+        const actions = el("div", "booking-actions");
+        const cancel = el("button", "btn-danger", "Cancel booking");
         cancel.style.padding = "5px 10px";
         cancel.addEventListener("click", () => cancelBooking(booking.id));
         actions.appendChild(cancel);
+        card.appendChild(actions);
       }
-      card.appendChild(actions);
+
       host.appendChild(card);
     }
+
     nextCursor = data.next_cursor;
     $("pager").classList.toggle("hidden", !cursorStack.length && !nextCursor);
     $("prevPage").disabled = !cursorStack.length;
